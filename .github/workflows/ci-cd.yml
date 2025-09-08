@@ -1,0 +1,32 @@
+# .github/workflows/ci.yml
+name: CI  # 工作流名称，出现在 Actions 列表里
+
+on:       # 触发条件
+  push:   # 任何 push（默认所有分支）
+  pull_request:  # 任何 PR
+
+jobs:
+  test:                 # 唯一的 Job：跑测试
+    runs-on: ubuntu-latest  # 使用 GitHub 托管的 Ubuntu 机器
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4     # 拉取当前仓库代码到 runner
+
+      - name: Run tests via Docker Compose
+        run: |
+          # 只启动 tests 服务；Compose 会自动拉起它的依赖（api、worker、redis），不会启动 flower
+          # --build                 ：先按 Dockerfile 构建镜像（确保依赖和代码是最新的）
+          # --abort-on-container-exit：任一相关容器退出就停止其它容器（便于快速收尾）
+          # --exit-code-from tests  ：以 tests 容器的退出码作为整个命令的退出码（测试失败→Job 失败）
+          docker compose up --build --abort-on-container-exit --exit-code-from tests tests
+
+      - name: Dump logs if failed
+        if: failure()                 # 仅在上一步失败时执行
+        run: |
+          docker compose ps           # 打印容器状态
+          docker compose logs --no-color | tail -n 2000  # 打印最近日志，便于定位
+
+      - name: Tear down
+        if: always()                  # 无论成功失败都执行
+        run: docker compose down -v   # 停并清理网络和卷，避免泄露资源
