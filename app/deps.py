@@ -1,6 +1,8 @@
 from __future__ import annotations
-from typing import Annotated, Optional
-from fastapi import Depends, Header, HTTPException, status
+
+from typing import Annotated
+
+from fastapi import Header, HTTPException, status
 from pydantic import BaseModel, Field
 
 
@@ -9,7 +11,7 @@ class User(BaseModel):
     name: str
 
 
-def _parse_bearer(authorization: Optional[str]) -> Optional[str]:
+def _parse_bearer(authorization: str | None) -> str | None:
     if not authorization:
         return None
     parts = authorization.split()
@@ -18,7 +20,7 @@ def _parse_bearer(authorization: Optional[str]) -> Optional[str]:
     return None
 
 
-async def get_current_user(authorization: Annotated[Optional[str], Header()]=None):
+async def get_current_user(authorization: Annotated[str | None, Header()] = None) -> User:
     """
     从 Authorization: Bearer <token> 中解析用户名，并返回 User。
     规则：token 直接等于用户名（练习用）。

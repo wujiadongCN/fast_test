@@ -1,4 +1,6 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS production
+
+RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/*
 
 # 安装 uv
 RUN pip install --no-cache-dir uv
@@ -19,4 +21,4 @@ COPY pytest.ini ./pytest.ini
 EXPOSE 8000 5555
 
 # 默认命令让 compose 覆盖；单容器运行可直接起 uvicorn
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+#CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

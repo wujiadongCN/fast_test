@@ -1,15 +1,15 @@
+from celery.result import AsyncResult
 from fastapi import FastAPI
 from pydantic import BaseModel, EmailStr, Field
 
-from .middlewares import add_middlewares
-from .errors import init_error_handlers
-from .routers.v1.meta import router as meta_v1
-from .routers.v1.items import router as items_v1
-from .routers.v2.meta import router as meta_v2
-
-from celery.result import AsyncResult
 from app.celery_app import celery
-from app.routers.v1.tasks import add, send_email_task
+from app.routers.v1.tasks import add
+
+from .errors import init_error_handlers
+from .middlewares import add_middlewares
+from .routers.v1.items import router as items_v1
+from .routers.v1.meta import router as meta_v1
+from .routers.v2.meta import router as meta_v2
 
 
 def create_app() -> FastAPI:
@@ -49,6 +49,10 @@ def create_app() -> FastAPI:
         state: str
         result: dict | None = None
 
+    @app.get("/health", status_code=200)
+    def health():
+        return {"status": "ok"}
+
     @app.post("/send-email", response_model=TaskOut)
     def enqueue_mail(payload: MailIn):
         """
@@ -69,7 +73,9 @@ def create_app() -> FastAPI:
         res: AsyncResult = celery.AsyncResult(task_id)
         # 失败时 result 里通常是异常信息；成功时是任务返回值
         result = res.result if res.successful() else (res.result if res.failed() else None)
-        return TaskStatusOut(task_id=task_id, state=res.state, result=result if isinstance(result, dict) else None)
+        return TaskStatusOut(
+            task_id=task_id, state=res.state, result=result if isinstance(result, dict) else None
+        )
 
     return app
 

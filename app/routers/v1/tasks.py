@@ -1,7 +1,9 @@
 # app/routers/v1/tasks.py
 import smtplib
 from email.message import EmailMessage
+
 from celery import shared_task
+
 from app.settings import settings
 
 

@@ -1,14 +1,13 @@
 from __future__ import annotations
-from typing import Dict, List, Tuple
-from .schemas import ItemOut, ItemCreate
 
+from .schemas import ItemCreate, ItemOut
 
 # 简易内存 DB
-DB: Dict[int, ItemOut] = {}
+DB: dict[int, ItemOut] = {}
 NEXT_ID: int = 1
 
 # 审计日志（写入简单列表以便测试）
-AUDIT_LOG: List[Tuple[str, int]] = []  # (username, item_id)
+AUDIT_LOG: list[tuple[str, int]] = []  # (username, item_id)
 
 
 def clear_state():
@@ -20,7 +19,9 @@ def clear_state():
 
 def create_item(owner: str, data: ItemCreate) -> ItemOut:
     global NEXT_ID
-    item = ItemOut(id=NEXT_ID, name=data.name, price=data.price, description=data.description, owner=owner)
+    item = ItemOut(
+        id=NEXT_ID, name=data.name, price=data.price, description=data.description, owner=owner
+    )
     DB[NEXT_ID] = item
     NEXT_ID += 1
     return item
@@ -37,7 +38,7 @@ def delete_item(item_id: int) -> bool:
 def list_items(limit: int, offset: int) -> list[ItemOut]:
     items = list(DB.values())
     # 按 offset/limit 做分页切片
-    return items[offset:offset + limit]
+    return items[offset : offset + limit]
 
 
 def audit_created(owner: str, item_id: int) -> None:

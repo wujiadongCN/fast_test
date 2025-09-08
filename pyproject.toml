@@ -1,0 +1,33 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+exclude = '''
+/(
+  \.git
+| \.venv
+| build
+| dist
+)/
+'''
+
+[tool.ruff]
+# 与 Black 对齐
+line-length = 100
+target-version = "py311"
+extend-exclude = ["tests/__snapshots__"]
+
+[tool.ruff.lint]
+# 一套常用规则；按需增删
+select = [
+  "E","F","W",      # pycodestyle/pyflakes
+  "I",              # isort (导入顺序)
+  "B",              # bugbear
+  "UP",             # pyupgrade
+  "C90"             # mccabe 复杂度
+]
+ignore = [
+  "E203", "E501"    # 让位 Black 的换行风格；行宽交给 Black
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # 例：允许测试里出现 assert

@@ -21,9 +21,12 @@ async def test_background_audit_log(client):
     assert r.status_code == 200
 
     # 背景任务执行是异步调度，这里简单再访问一次确保事件循环推进
-    r2 = await client.get("/api/v1/items", headers={"Authorization": "Bearer zed", "limit": "10", "offset": "0"})
+    r2 = await client.get(
+        "/api/v1/items", headers={"Authorization": "Bearer zed", "limit": "10", "offset": "0"}
+    )
     assert r2.status_code == 200
 
     # 直接访问内部列表进行断言（单进程测试场景）
     from app.services import AUDIT_LOG
+
     assert ("zed", 1) in AUDIT_LOG

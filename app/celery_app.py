@@ -1,5 +1,6 @@
 # app/celery_app.py
 from celery import Celery
+
 from app.settings import settings  # 使用相对导入，避免同名模块冲突
 
 celery = Celery(

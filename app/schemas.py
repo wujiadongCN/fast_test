@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ItemCreate(BaseModel):
     name: str = Field(min_length=1, examples=["Apple"])  # OpenAPI 示例
     price: float = Field(gt=0)
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class ItemOut(BaseModel):
@@ -14,5 +14,5 @@ class ItemOut(BaseModel):
     id: int
     name: str
     price: float
-    description: Optional[str] = None
+    description: str | None = None
     owner: str
