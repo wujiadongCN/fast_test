@@ -1,32 +1,80 @@
-# .github/workflows/ci.yml
-name: CI  # 工作流名称，出现在 Actions 列表里
+name: CI
 
-on:       # 触发条件
-  push:   # 任何 push（默认所有分支）
-  pull_request:  # 任何 PR
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
-  test:                 # 唯一的 Job：跑测试
-    runs-on: ubuntu-latest  # 使用 GitHub 托管的 Ubuntu 机器
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      # 你的应用里读取这个即可
+      REDIS_URL: redis://localhost:6379/0
+      ENVIRONMENT: test
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4     # 拉取当前仓库代码到 runner
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Run tests via Docker Compose
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
         run: |
-          # 只启动 tests 服务；Compose 会自动拉起它的依赖（api、worker、redis），不会启动 flower
-          # --build                 ：先按 Dockerfile 构建镜像（确保依赖和代码是最新的）
-          # --abort-on-container-exit：任一相关容器退出就停止其它容器（便于快速收尾）
-          # --exit-code-from tests  ：以 tests 容器的退出码作为整个命令的退出码（测试失败→Job 失败）
-          docker compose up --build --abort-on-container-exit --exit-code-from tests tests
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # 开发/CI工具放这里装，避免污染你的运行时镜像
+          pip install pytest pytest-cov ruff black
 
-      - name: Dump logs if failed
-        if: failure()                 # 仅在上一步失败时执行
+      - name: Show versions
         run: |
-          docker compose ps           # 打印容器状态
-          docker compose logs --no-color | tail -n 2000  # 打印最近日志，便于定位
+          python -V
+          pip -V
+          pytest --version
+          ruff --version
+          black --version
 
-      - name: Tear down
-        if: always()                  # 无论成功失败都执行
-        run: docker compose down -v   # 停并清理网络和卷，避免泄露资源
+      - name: Code style (Black check)
+        run: |
+          black --check --diff .
+
+      - name: Lint (Ruff check)
+        run: |
+          # 既做导入顺序(isort规则)，也做lint
+          ruff check .
+
+      - name: Run tests
+        env:
+          # 测试阶段也显式设置一次
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          pytest -q --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing
